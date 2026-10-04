@@ -1,7 +1,7 @@
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import Scramble from "./components/Scramble";
-import { NAME, TAGLINE, ABOUT, PROJECTS } from "./site";
+import Scramble, { Flicker } from "./components/Scramble";
+import { NAME, TAGLINE, ABOUT, PROJECTS, MANIFESTO } from "./site";
 import { getPosts } from "./posts";
 
 const TICKER = ["BUILD", "WRITE", "SHIP", "REPEAT"];
@@ -9,18 +9,31 @@ const TICKER = ["BUILD", "WRITE", "SHIP", "REPEAT"];
 export default function Home() {
   const paras = ABOUT.split("\n");
   const posts = getPosts().slice(0, 4);
+  const bg = MANIFESTO.map((p) => p.text.replace(/\n+/g, " ")).join("\n");
   return (
     <main>
       <Navbar />
 
       <section className="hero">
-        <Scramble text={Array(14).fill(ABOUT.replace(/\n+/g, " ")).join("\n")} cols={4} />
+        <Scramble text={Array(14).fill(bg).join("\n")} cols={4} />
         <div className="title">
           <h1>{NAME}</h1>
           <p>{TAGLINE}</p>
         </div>
         <div className="bar bottom">
           {TICKER.map((w) => <span key={w}>{w}</span>)}
+        </div>
+      </section>
+
+      <section id="manifesto" className="plain">
+        <h2>My manifesto</h2>
+        <div className="pillars">
+          {MANIFESTO.map((p) => (
+            <div className="pillar" key={p.word}>
+              <h3>{p.word}</h3>
+              <Flicker text={p.text} />
+            </div>
+          ))}
         </div>
       </section>
 
