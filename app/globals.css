@@ -138,3 +138,8 @@ a.card:hover b { text-decoration: underline; text-underline-offset: 0.12em; text
 .prose p, .prose ul, .prose ol { margin: 0 0 1.1em; }
 .prose ul { list-style: disc; padding-left: 1.4em; }
 .prose ol { list-style: decimal; padding-left: 1.4em; }
+.prose img, .prose video { display: block; width: 100%; max-width: 26rem; height: auto; margin: 2em 0; border: 1px solid var(--ink); }
+
+/* top bar: keep every item on one line, with the theme toggle in the true centre */
+.bar { align-items: center; }
+.bar .theme { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
