@@ -17,6 +17,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       <Navbar />
       <article className="plain post">
         <h1>{p.title}</h1>
+        {p.subtitle && <p className="subtitle">{p.subtitle}</p>}
         <div className="post-grid">
           <p className="meta"><span>{p.date}</span><a href="/blog">All writing</a></p>
           {/* ponytail: posts are files in this repo, so the HTML is trusted. Sanitize if posts ever come from outside. */}

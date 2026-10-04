@@ -125,6 +125,8 @@ a.card:hover b { text-decoration: underline; text-underline-offset: 0.12em; text
 
 /* single post: big title like the section heads, readable body column */
 .post h1 { font-size: clamp(2.2rem, 5.2vw, 5rem); line-height: 0.95; max-width: 16em; }
+.post h1:has(+ .subtitle) { margin-bottom: 2.5vh; }
+.post .subtitle { margin: 0 0 6vh; font-size: clamp(1.3rem, 2.6vw, 2.4rem); line-height: 1.05; letter-spacing: -0.03em; font-weight: 500; color: var(--dim); }
 .post-grid { display: grid; gap: 24px; border-top: 1px solid var(--ink); padding-top: 16px; }
 .post .meta { display: flex; gap: 16px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; margin: 0; }
 /* desktop: date in the left margin, text column in the centre of the page */

@@ -4,7 +4,7 @@ import { marked } from "marked";
 
 const DIR = path.join(process.cwd(), "content", "posts");
 
-export type Post = { slug: string; title: string; date: string; description: string; body: string };
+export type Post = { slug: string; title: string; subtitle: string; date: string; description: string; body: string };
 
 // ponytail: flat "key: value" frontmatter only. Swap in gray-matter if posts need lists or nested YAML.
 export function parse(raw: string) {
@@ -19,7 +19,7 @@ export function parse(raw: string) {
 
 export function getPost(slug: string): Post {
   const { meta, body } = parse(fs.readFileSync(path.join(DIR, `${slug}.md`), "utf8"));
-  return { slug, title: meta.title ?? slug, date: meta.date ?? "", description: meta.description ?? "", body };
+  return { slug, title: meta.title ?? slug, subtitle: meta.subtitle ?? "", date: meta.date ?? "", description: meta.description ?? "", body };
 }
 
 export function getPosts(): Post[] {
