@@ -14,10 +14,10 @@ p1|6.6|8.6|01 / PRIORITIES|“Put my priorities on my X3”|
 p2|8.9|10.6|02 / TODAY|“Show my day on my X3”|
 p3|10.9|12.6|03 / WORKOUT|“Put today’s workout on my X3”|
 p4|13.0|14.8|04 / NOTE|“Write a note on my X3”|
-p5|15.2|17.6|05 / E-PAPER|Pages stay on screen with the power off|
-end|19.2|99|CODE AND GUIDE|Muse on Xteink X3|github.com/Exorust/muse-gadget-xteink-x3<br>charoori.com'
+p5|15.2|17.2|05 / E-PAPER|Pages stay on screen with the power off|
+end|17.2|99|CODE AND GUIDE|Muse on Xteink X3|github.com/Exorust/muse-gadget-xteink-x3<br>charoori.com'
 
-inputs=(); graph="[0:v]trim=start=3,setpts=PTS-STARTPTS,fps=30,scale=1080:1920,tpad=stop_mode=clone:stop_duration=2.6[v0]"; n=0
+inputs=(); graph="[0:v]trim=start=3:end=20.6,setpts=PTS-STARTPTS,fps=30,scale=1080:1920,tpad=stop_mode=clone:stop_duration=1.7[v0]"; n=0
 while IFS='|' read -r name a b label head sub; do
   bg=transparent; [ "$name" = end ] && bg="#f4f4f2"
   cat > "$TMP/$name.html" <<HTML
@@ -36,7 +36,7 @@ HTML
   graph+=";[$n:v]format=rgba,fade=in:st=$a:d=$([ "$name" = end ] && echo 0.6 || echo 0.25):alpha=1$fo[c$n];[v$((n-1))][c$n]overlay=enable='between(t,$a,$b)'[v$n]"
 done <<< "$CAPS"
 
-ffmpeg -v error -y -i "$SRC" "${inputs[@]}" -filter_complex "$graph" -map "[v$n]" -an -t 22 \
+ffmpeg -v error -y -i "$SRC" "${inputs[@]}" -filter_complex "$graph" -map "[v$n]" -an -t 19.2 \
   -c:v libx264 -preset slow -crf 26 -pix_fmt yuv420p -movflags +faststart "$OUT"
 ffmpeg -v error -y -ss 7.5 -i "$OUT" -frames:v 1 -q:v 3 ../public/posts/muse-x3/x3-demo-poster.jpg
 ls -la "$OUT"
