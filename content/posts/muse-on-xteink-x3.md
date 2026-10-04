@@ -10,9 +10,10 @@ I had an Xteink X3 lying around. It is a tiny e-ink reader, about the size of a 
 
 A day later, Muse writes my priorities onto it and I scroll through them with the page buttons.
 
-<img src="/posts/muse-x3/x3-connected.jpg" alt="The Xteink X3 e-ink reader showing the Muse mascot and the word Connected" width="1050" height="1400" loading="lazy">
-
-<video src="/posts/muse-x3/x3-muse-demo.mp4" controls muted playsinline preload="metadata" poster="/posts/muse-x3/x3-connected.jpg" aria-label="Demo: paging through Priorities, Today, Note and Todo pages on the X3"></video>
+<div class="media">
+<img src="/posts/muse-x3/x3-connected.jpg" alt="The Xteink X3 e-ink reader showing the Muse mascot and the word Connected" width="1050" height="1400">
+<video src="/posts/muse-x3/x3-muse-demo.mp4" controls muted playsinline preload="metadata" poster="/posts/muse-x3/x3-demo-poster.jpg" width="720" height="1280" aria-label="Demo: paging through Priorities, Today, Note and Todo pages on the X3"></video>
+</div>
 
 ## What it does
 

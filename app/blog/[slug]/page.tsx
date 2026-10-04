@@ -16,10 +16,12 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
     <main>
       <Navbar />
       <article className="plain post">
-        <p className="meta">{p.date} · <a href="/blog">All writing</a></p>
         <h1>{p.title}</h1>
-        {/* ponytail: posts are files in this repo, so the HTML is trusted. Sanitize if posts ever come from outside. */}
-        <div className="prose" dangerouslySetInnerHTML={{ __html: html(p.body) }} />
+        <div className="post-grid">
+          <p className="meta"><span>{p.date}</span><a href="/blog">All writing</a></p>
+          {/* ponytail: posts are files in this repo, so the HTML is trusted. Sanitize if posts ever come from outside. */}
+          <div className="prose" dangerouslySetInnerHTML={{ __html: html(p.body) }} />
+        </div>
       </article>
       <Footer />
     </main>
