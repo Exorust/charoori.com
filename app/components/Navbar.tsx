@@ -21,8 +21,9 @@ export default function Navbar() {
           {matrix ? "EXIT THE MATRIX" : "ENTER THE MATRIX"}
         </button>
         <span className="links">
-          <a href="/#manifesto">MANIFESTO</a>
+          <a className="hide-sm" href="/#manifesto">MANIFESTO</a>
           <a href="/blog">WRITING</a>
+          <a href="/resume">RESUME</a>
           <a href="/#contact">CONTACT</a>
         </span>
       </nav>

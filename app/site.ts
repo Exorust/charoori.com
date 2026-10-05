@@ -49,3 +49,12 @@ If AI takes the mundane, what is left is beauty and wonder.
 Whatever comes, I will live passionately.`,
   },
 ];
+
+// Copied from exorust.github.io (src/data/experience.ts). Newest first.
+export const EXPERIENCE = [
+  { company: "Salesforce", role: "AI Engineer", period: "2024 – Present", text: "Building AgentForce step by step at Einstein Studio.", stack: ["PyTorch", "CUDA", "LLMs"] },
+  { company: "CoreAI", role: "Technical Cofounder", period: "2024", text: "Multi-model systems with Llama 8B and Phi 2.7B. Achieved 35% model size reduction and 70% inference speed improvement through fine-tuning.", stack: ["PyTorch", "LLMs", "ONNX"] },
+  { company: "Qualcomm", role: "Systems Engineer Intern", period: "2024", text: "Reinforcement learning and Bayesian optimization for ADAS resource allocation.", stack: ["Python", "Reinforcement Learning", "Bayesian Optimization"] },
+  { company: "Microsoft", role: "Software Development Engineer", period: "2020 – 2023", text: "Built ML features: Picture to Tasks (78% accuracy), Discover Feed (20% engagement increase), Autosuggest Tasks, Autocategorize Tasks (35% manual effort reduction).", stack: ["Azure ML", "ReactJS", "Spring Boot", "Kafka"] },
+  { company: "Nvidia", role: "Software Development Intern", period: "2020", text: "Enhanced HDMI I2C graphics driver functions and GPU power performance testing utilities.", stack: ["C", "CUDA", "GPU Drivers"] },
+];

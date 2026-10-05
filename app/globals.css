@@ -118,10 +118,10 @@ a.card:hover b { text-decoration: underline; text-underline-offset: 0.12em; text
 
 /* blog index: date, title, description on one rule per post */
 .index { list-style: none; margin: 0; padding: 0; }
-.index a { display: grid; gap: 8px; padding: 24px 0; border-top: 1px solid var(--ink); color: var(--ink); text-decoration: none; font-family: var(--font-mono); font-size: 13px; }
+.index a, .index .row { display: grid; gap: 8px; padding: 24px 0; border-top: 1px solid var(--ink); color: var(--ink); text-decoration: none; font-family: var(--font-mono); font-size: 13px; }
 .index b { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: clamp(1.6rem, 4vw, 3rem); line-height: 1; letter-spacing: -0.03em; font-weight: 500; }
 .index a:hover b { text-decoration: underline; text-underline-offset: 0.12em; text-decoration-thickness: 2px; }
-@media (min-width: 768px) { .index a { grid-template-columns: 9em 1fr; } .index a > span:last-child { grid-column: 2; } }
+@media (min-width: 768px) { .index a, .index .row { grid-template-columns: 9em 1fr; } .index a > span:last-child, .index .row > span:last-child { grid-column: 2; } }
 
 /* single post: big title like the section heads, readable body column */
 .post h1 { font-size: clamp(2.2rem, 5.2vw, 5rem); line-height: 0.95; max-width: 16em; }
