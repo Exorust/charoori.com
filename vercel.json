@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    { "source": "/undercurrent", "destination": "/undercurrent/", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/undercurrent/", "destination": "https://undercurrent-five-kappa.vercel.app/" },
+    { "source": "/undercurrent/:path*", "destination": "https://undercurrent-five-kappa.vercel.app/:path*" }
+  ]
+}
