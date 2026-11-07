@@ -4,6 +4,7 @@
   ],
   "rewrites": [
     { "source": "/undercurrent/", "destination": "https://undercurrent-five-kappa.vercel.app/" },
+    { "source": "/undercurrent/:path*/", "destination": "https://undercurrent-five-kappa.vercel.app/:path*/" },
     { "source": "/undercurrent/:path*", "destination": "https://undercurrent-five-kappa.vercel.app/:path*" }
   ]
 }

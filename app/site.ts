@@ -15,6 +15,7 @@ Before this I was at Microsoft and Nvidia, cofounded CoreAI, and wrote TorchLeet
 I also run The Kernel Dev, a builder-first AI community in San Francisco.`;
 
 export const PROJECTS = [
+  { name: "undercurrent", url: "/undercurrent/", text: "A map of every computer-science paper on arXiv since 2023. Which topics are arriving, and which ones are starting to connect. Updated monthly." },
   { name: "TorchLeet", url: "https://github.com/Exorust/TorchLeet", text: "Leetcode for PyTorch. Hands-on exercises to learn PyTorch by solving problems. About 2,000 stars." },
   { name: "The Kernel Dev", url: "https://thekernel.dev", text: "A curated community of AI builders and researchers in San Francisco. Small rooms, live demos, no slides." },
   { name: "AdKit-MCP", url: "https://github.com/Exorust/Adkit-MCP", text: "A lightweight ad engine for the Model Context Protocol." },
