@@ -1,114 +1,130 @@
 ---
 title: "When AI debugs AI: repair or bypass?"
-subtitle: I asked a frontier model to fix a small model's weights by hand, twice. Both times the bug went away, and both times it was a bypass.
+subtitle: I gave a frontier model the raw weights of a small model and asked it to fix a bug by hand. It did. Then I looked at what it had changed.
 date: 2026-11-07
-description: An independent test of MIT's weight-space programming claim on a text-to-SQL loop in Qwen3.5-0.8B, with Claude Fable 5.1 as the editor. Two sessions, two working edits, both bypasses. One measurement separates a bypass from a repair.
+description: An independent test of MIT's weight-space programming claim. Claude Fable 5.1 edited four neurons of Qwen3.5-0.8B and cured a thinking loop on text-to-SQL. The cure is a bypass, not a repair, and one count tells the two apart.
 ---
-Last week MIT CSAIL published a report called "Sparks of Weight-Space Programming". The claim is simple and strange: give a frontier model the raw weights of a small model, a Python kernel, and a budget of forward passes, and it can find why the small model misbehaves and fix it by editing the weights directly. No training. No gradients. The headline result: GPT-6 Astra edited 0.016% of Qwen3.5-0.8B's weights and its MATH-500 score went from 8% to 48%, because the small model had been stuck in a loop and the edit removed the loop.
+<style>
+.prose .wsp-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border:1px solid var(--ink);margin:0 0 2em}
+.prose .wsp-stats div{padding:14px 16px;border-top:1px solid var(--ink)}
+.prose .wsp-stats div:nth-child(-n+2){border-top:0}
+.prose .wsp-stats div:nth-child(odd){border-right:1px solid var(--ink)}
+.prose .wsp-stats b{display:block;font-size:clamp(1.8rem,4vw,2.6rem);line-height:1;letter-spacing:-.03em;font-weight:500}
+.prose .wsp-stats span{font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+@media(min-width:640px){.prose .wsp-stats{grid-template-columns:repeat(4,1fr)}.prose .wsp-stats div{border-top:0;border-right:1px solid var(--ink)}.prose .wsp-stats div:last-child{border-right:0}}
+.prose .wsp-term{border:1px solid var(--ink);padding:14px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.5;white-space:pre-wrap;margin:1.5em 0;position:relative;overflow:hidden}
+.prose .wsp-term .r1{opacity:.75}.prose .wsp-term .r2{opacity:.5}.prose .wsp-term .r3{opacity:.3}.prose .wsp-term .r4{opacity:.15}
+.prose .wsp-term .tag{position:absolute;top:10px;right:12px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--ink);padding:2px 6px;background:var(--paper)}
+.prose .wsp-steps{list-style:none;padding:0;margin:1.5em 0;counter-reset:s}
+.prose .wsp-steps li{display:grid;grid-template-columns:2.6em 1fr auto;gap:12px;padding:16px 0;border-top:1px solid var(--ink);counter-increment:s;align-items:start}
+.prose .wsp-steps li:last-child{border-bottom:1px solid var(--ink)}
+.prose .wsp-steps li::before{content:"0" counter(s);font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;padding-top:.35em;color:var(--dim)}
+.prose .wsp-steps p{margin:0}.prose .wsp-steps p+p{margin-top:.5em;color:var(--dim);font-size:.94em}
+.prose .wsp-steps em{font-style:normal;font-weight:500}
+.prose .wsp-steps .v{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--ink);padding:3px 7px;white-space:nowrap}
+.prose .wsp-steps .v.ok{background:var(--ink);color:var(--paper)}
+.prose .wsp-video video{max-width:none;margin:1.5em 0 .6em}
+.prose .wsp-cap{font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--dim);margin:0 0 2em}
+.prose .wsp-vs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--ink);margin:1.5em 0}
+.prose .wsp-vs>div{padding:16px}.prose .wsp-vs>div:first-child{border-right:1px solid var(--ink)}
+.prose .wsp-vs h4{margin:0 0 .5em;font-size:1.1rem;font-weight:500;letter-spacing:-.02em}
+.prose .wsp-vs p{margin:0 0 .6em;font-size:.94em}.prose .wsp-vs .n{font-family:var(--font-mono);font-size:12px;color:var(--dim);letter-spacing:.04em}
+@media(max-width:480px){.prose .wsp-vs{grid-template-columns:1fr}.prose .wsp-vs>div:first-child{border-right:0;border-bottom:1px solid var(--ink)}}
+.prose .wsp-quote{margin:2em 0;padding:0 0 0 1em;border-left:2px solid var(--ink);font-size:1.25rem;line-height:1.3;letter-spacing:-.02em}
+.prose .wsp-quote small{display:block;margin-top:.6em;font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.prose .wsp-links{display:flex;flex-wrap:wrap;gap:10px;margin:1.5em 0}
+.prose .wsp-links a{font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--ink);padding:8px 12px;text-decoration:none}
+.prose .wsp-links a:hover{background:var(--ink);color:var(--paper)}
+</style>
 
-I wanted to know what that method actually does when it works. So I rebuilt the setup, pointed it at a different problem, used a different editor, and kept every hypothesis the editor wrote down. Here is what happened.
+<div class="wsp-stats">
+<div><b>4</b><span>neurons changed</span></div>
+<div><b>4,083</b><span>of 800M weights</span></div>
+<div><b>0</b><span>gradient steps</span></div>
+<div><b>28%</b><span>correct, up from 1%</span></div>
+</div>
 
-## The setup
+MIT CSAIL published a report this month called "Sparks of Weight-Space Programming". The claim: hand a frontier model the raw weights of a small model, a Python kernel and a budget of forward passes, and it will find why the small model misbehaves and fix it by editing the weights directly. No training. Their editor, GPT-6 Astra, changed 0.016% of Qwen3.5-0.8B and took its math score from 8% to 48%.
 
-The small model is the same one, Qwen3.5-0.8B. The task is text-to-SQL: here is a database schema, here is a question in English, write the query. The answer is graded by running it.
+I wanted to see the method work on something it had not been tuned for. So I rebuilt the setup, pointed it at a different bug, used a different editor, and kept every hypothesis the editor wrote down.
 
-The bug is the same kind of bug the report fixed. With thinking mode on, the model starts writing "Thinking Process: 1. Analyze the Request... 2. Analyze the Schema..." and then repeats schema bullets until it hits the 8,192-token limit. On a held-out benchmark, BIRD Mini-Dev, 91% of answers loop and 0.7% are correct. The report's own math edit, applied to this model, barely helps: the cut-off rate drops from 99% to 87%. So the editor has to find this loop on its own.
+## The bug
 
-The editor is Claude Fable 5.1, called with no tools, no memory, and nothing but the task prompt. It gets the same deal the report gave Astra: a sandboxed Python kernel over the weights, 300 code runs, 25 forward passes. A forward pass either generates answers to practice questions (graded, paired original versus edited) or runs the model teacher-forced and returns log-probabilities, hidden states, MLP activations and attention. Every 40 turns the conversation restarts with the editor's own notes. The benchmark it is judged on is never shown to it.
+Qwen3.5-0.8B writes SQL badly, but that is not the bug. The bug is what happens when you let it think first. On BIRD Mini-Dev, a text-to-SQL benchmark, 91% of its answers never arrive. The model starts a tidy "Thinking Process", lists the tables, and then re-reads the schema until it runs out of room at 8,192 tokens. This is question 806, about superheroes. The model restarts the same list 626 times.
 
-![The harness](/posts/weight-space-programming-sql/f1_setup.png)
+<div class="wsp-term"><span class="tag">626 repeats</span>2.  **Analyze the Schema:**
+    *   `superhero` table:
+        *   `id` (primary key)
+        *   `full_name` (default NULL)
+        *   `eye_colour_id` (default NULL)
+    *   Wait, let's re-read the schema provided in the prompt carefully.
+<span class="r1">    *   `superhero` table:
+        *   `id` (primary key)
+        *   `full_name` (default NULL)
+    *   Wait, let's re-read the schema provided in the prompt carefully.</span>
+<span class="r2">    *   `superhero` table:
+        *   `id` (primary key)
+    *   Wait, let's re-read the schema provided in the prompt carefully.</span>
+<span class="r3">    *   `superhero` table:
+    *   Wait, let's re-read the schema provided in the prompt carefully.</span>
+<span class="r4">    *   Wait, let's re-read the schema provided in the prompt carefully.</span></div>
 
-## What the editor did
+Score with thinking on: 0.7% correct. This is the same kind of bug the MIT report fixed on math, so it is a fair test. Their own math edit, applied here, barely moves it.
 
-The session ran 9.8 hours on my laptop: 328 turns, 299 code runs, 25 passes. Three attempts.
+## The deal
 
-![Three attempts](/posts/weight-space-programming-sql/f2_session.png)
+The editor is Claude Fable 5.1, with no tools, no memory and no internet. It gets what the report gave Astra: a sandboxed Python kernel over the weights, 300 code runs, and 25 forward passes. A forward pass either answers practice questions (graded by running the SQL, original model against edited, side by side) or runs the model on a fixed text and hands back activations. It never sees the benchmark it is judged on. Then it is left alone for 9.8 hours.
 
-**Attempt 1.** The editor generated answers for 128 practice questions, confirmed the loop, and teacher-forced two loop transcripts with attention saved. It found induction heads, attention heads that look one repetition back and copy: layer 15 head 7 with 0.26 of its attention mass on the previous period, then layer 11 head 1, layer 23 head 5, layer 19 head 5. It measured that the loop is "soft": at each bullet the copied token wins by only 1 to 2 nats. It zeroed the output columns of those four heads. Paired test on 40 fresh questions: still 100% cut off. The edit was dropped.
+## Three attempts
 
-Layer 15 head 7 is, by the way, exactly the head the report's 25-pass run zeroed for math. Here it did nothing.
+<ol class="wsp-steps">
+<li><div><p><em>Cut the copy heads.</em> The editor generated 128 answers, confirmed the loop, and recorded attention over two loop transcripts. It found the heads that look one repetition back and copy, with layer 15 head 7 doing most of the work. It zeroed all four.</p><p>Layer 15 head 7 is the exact head the MIT run zeroed for math. Here it changed nothing. Still 100% cut off.</p></div><span class="v">failed</span></li>
+<li><div><p><em>Silence the digit neurons.</em> At each blank line the model chooses between "another indented bullet" and "next section number". Seven neurons in the last layer push the digit down by about 3 nats, one neuron per digit. The editor zeroed them.</p><p>A real, specific mechanism. Still 100% cut off. The editor wrote: "The looping is distributed and not fixable at one site."</p></div><span class="v">failed</span></li>
+<li><div><p><em>Ask a different question.</em> Not "why does the loop continue" but "why does the model enter this mode at all". At the very first thinking token, the closing tag <code>&lt;/think&gt;</code> is already a plausible next word. The editor found four neurons, one each in layers 17 to 20, that fire only at that position. It added to each a scaled copy of the direction the output layer reads as <code>&lt;/think&gt;</code>.</p><p>Four scalars. 4,083 weights. On seven fresh sets of 64 practice questions: 1.1% correct before, 28% after.</p></div><span class="v ok">worked</span></li>
+</ol>
 
-**Attempt 2.** The editor took the model's own loop transcripts and recorded MLP activations in layers 16 to 23. It asked a sharper question: at each blank line the model chooses between "add another indented bullet" and "write the next section number". It found seven neurons in the last layer that fire when a digit is coming and push that exact digit down by about 3 nats, one neuron per digit. That is a real, specific finding. It zeroed those seven columns and rescaled four more. Paired test on 48 fresh questions: still 100% cut off. Dropped.
+## What it changed
 
-The editor's note at that point: "The looping is distributed and not fixable at one site."
+Every MLP neuron writes one fixed direction into the model's running state when it fires. So you can place each neuron by that direction and watch which ones move.
 
-**Attempt 3.** It changed the question. Instead of "why does the loop continue" it asked "why does the model enter this mode at all". At the very first thinking token, right after `<think>`, the closing tag `</think>` is already a plausible next token, rank 6 to 8, log-probability minus 6.9. The MLPs of layers 16 to 23 push against it, diffusely. Then it searched for neurons that fire only at that position and found four, one each in layers 17, 18, 19 and 20. Their activations are 1.2 to 2.7 there and below 0.7 everywhere else at the 99.9th percentile. A clean "start of thinking" detector.
+<div class="wsp-video"><video src="/posts/weight-space-programming-sql/neurons.mp4" autoplay muted loop playsinline preload="metadata" poster="/posts/weight-space-programming-sql/neurons_poster.jpg" width="1080" height="1080" aria-label="Turning cloud of the model's neurons by layer. Four edited neurons in layers 17 to 20 move far out toward the end-of-thinking token. The 128 neurons of the MIT edit stay in the cloud."></video></div>
+<p class="wsp-cap">Each dot is one neuron (300 per layer). Height is the layer. Sideways is alignment with the direction Fable added. Pink: Fable's four. Blue: the MIT math edit. <a href="https://wsp-sql.vercel.app/neurons">Turn it yourself.</a></p>
 
-The edit: add to each of those four neurons' output columns a scaled copy of the direction the output layer reads as `</think>`. Four scalars, 0.20, 0.20, 0.25, 0.15. 4,083 weight entries change out of 800 million.
+The four edits are one vector. Between any two of them the cosine is 1.0. Fable wrote the same push, toward <code>&lt;/think&gt;</code>, into four different neurons, and they leave the cloud: from a cosine near zero to 0.44 to 0.69, where 98% of the model's neurons sit between -0.07 and 0.07.
 
-![The mechanism](/posts/weight-space-programming-sql/f3_mechanism.png)
+The MIT math edit, in blue, changes 128 neurons and they do not move on this axis at all. They turn, but somewhere else.
 
-Effect: `</think>` goes from log-probability minus 6.9 to minus 0.1 at the first position. The model closes its thinking immediately and writes SQL. The editor then spent its remaining passes confirming this on seven independent sets of 64 fresh questions: original 1.1% correct, edited 28%. Every set was 19 to 31 points up. 122 questions went from wrong to right, 2 from right to wrong.
+That difference is the whole story.
 
-## Held out
+## Repair or bypass
 
-On BIRD Mini-Dev, which the editor never saw, the same 150 questions as the baseline:
+There are two ways to make a loop go away. Fix the reasoning so that it ends: a repair. Or make the model write <code>&lt;/think&gt;</code> at once and skip reasoning: a bypass. The model's chat template already has a flag for the second one. One count tells them apart: how much the model writes before the closing tag.
 
-| | correct | cut off | looping |
-|---|---|---|---|
-| base model, thinking on | 0.7% | 98.7% | 90.7% |
-| base model, thinking off via the chat template | 7.3% | 12.0% | 11.3% |
-| the report's math edit | 3.3% | 87.3% | 82.0% |
-| Fable's edit | 6.0% | 27.3% | 26.0% |
-| same edit, moved to random neurons, 5 draws | 0 to 2% | 100% | 90 to 98% |
-| gradient descent on the same 4,083 entries | 4.7% | 30.7% | 29.3% |
+<div class="wsp-vs">
+<div><h4>Fable's edit</h4><p>Closes thinking on 150 of 150 held-out questions. Reasoning before the tag: 0 characters, every time.</p><p class="n">BIRD, thinking on: 6.0% correct</p><p class="n">Template flag, no edit: 7.3% correct</p></div>
+<div><h4>MIT's math edit</h4><p>Closes thinking on 22 of 150. Where it works, the model reasons first: a median of 5,768 characters.</p><p class="n">On math, beats the flag: 50.2% vs 45.8%</p><p class="n">A repair, by this count</p></div>
+</div>
 
-Three things to read off that table.
+So the edit did not teach the model to stop looping. It taught the model to stop thinking, and it scores a point below the flag that does the same thing. A second Fable session, with no shared notes, reached the same place through different neurons (5.3% against 6.0%). Gradient descent, allowed to touch only the same 4,083 weights, lands there too, by a direction nearly orthogonal to Fable's. Same four neurons moved to random locations: nothing happens. The pick was real. The fix was a bypass.
 
-The edit transfers. On a benchmark with longer prompts and a different format it still removes the thinking loop. 9 questions went wrong to right, 1 right to wrong.
-
-The neuron choice mattered. Take the same four change vectors and apply them to randomly chosen neurons in the same four layers, and nothing happens. Fable picked four neurons out of 14,336 and the pick was not interchangeable.
-
-One more row: ordinary gradient descent, allowed to touch only the same 4,083 entries and trained to emit `</think>` then the gold SQL, lands in the same place, 4.7% correct and every answer opening with `</think>`, by a direction nearly orthogonal to Fable's. Given the four neurons, an optimiser finds the bypass too. What the editor contributed that the optimiser did not is the choice of which four neurons.
-
-And the edit is worth exactly one setting. The chat template has a flag that disables thinking by inserting an empty `<think></think>` block. The base model with that flag scores 7.3%. The edit makes the model emit the closing tag by itself, and scores 6.0%. The editor rebuilt a template flag inside the weights.
-
-## Two ways a bug can go away
-
-After the first session I ran a second one, same editor, fresh conversation, no shared notes. It reached the same strategy through different neurons: one neuron in layer 18 that fires only at the first thinking position, plus a "keep the query simple" steering direction written into a layer 16 neuron. On BIRD: 5.3% correct, 24.0% looping, against 6.0% and 26.0% for the first session. Random-location edits of its size do nothing, and gradient descent on its 2,048 entries finds the same thing.
-
-Then I read the other replications of the MIT result. Several show that the base model with thinking switched off already recovers most of the math gain, so the edit removes a loop and adds little ability. That point is settled. What none of them checks is how the loop goes away, and there are two ways.
-
-In a repair, the model still reasons and the reasoning now ends. In a bypass, the model writes `</think>` at once and skips reasoning, which is what the template flag already does. One count separates them: how much text comes before `</think>`.
-
-| same 150 questions | closes thinking | with zero reasoning | median characters of reasoning |
-|---|---|---|---|
-| base model | 2 | 0 | 3,092 |
-| the report's math edit | 22 | 0 | 5,768 |
-| Fable session 1 edit | 150 | 150 | 0 |
-| Fable session 2 edit | 150 | 150 | 0 |
-| gradient descent, either footprint | 150 | 150 | 0 |
-
-The report's math edit was not written for SQL and helps little here, but where it works the model still reasons. It is a repair. On math, other groups measure it at 50.2% with thinking on against 45.8% for the base model with thinking off, and beating the flag is something only a repair can do. Every edit found on SQL is a bypass, and none beats the flag.
-
-## What the two edits look like inside the model
-
-Each MLP neuron writes a fixed vector into the model's running state when it fires: its column in the layer's down_proj weight matrix. So one way to look at an edit is to place every neuron by the direction it writes, and see which neurons move.
-
-<video src="/posts/weight-space-programming-sql/neurons.mp4" autoplay muted loop playsinline preload="metadata" poster="/posts/weight-space-programming-sql/neurons_poster.jpg" width="1080" height="1080" aria-label="Turning cloud of the model's neurons by layer. Four edited neurons in layers 17 to 20 move far out toward the end-of-thinking token. The 128 neurons of the MIT edit stay in the cloud."></video>
-
-Each grey dot is one neuron of Qwen3.5-0.8B, 300 sampled per layer across all 24 layers. Height is the layer. The horizontal axis is the cosine between a neuron's output direction and the vector that session 1 added. Depth is the largest remaining variation. Both horizontal axes use the same cosine scale, so nothing is stretched.
-
-Three things are visible.
-
-The four changes of session 1 are one vector. Between any two of them the cosine is 1.0. Fable wrote the same push, toward `</think>`, into four different neurons.
-
-Those four neurons leave the cloud. Before the edit, their cosine with that vector is between -0.04 and 0.04. After it, the cosine is 0.44 to 0.69. Of the unchanged neurons, 98% stay between -0.07 and 0.07.
-
-The MIT math edit, in blue, changes 128 neurons in layers 15 and 19, and on this axis they do not move: the median cosine stays below 0.006. They do change, by a median cosine of 0.86 in layer 15 and 0.91 in layer 19 between before and after, but in other directions. That agrees with the table above: the bypass is one push toward one token, and the repair is not. It is one picture of two edits, not a test.
-
-You can turn the model by hand in the [interactive version](https://wsp-sql.vercel.app/neurons.html). The view is inspired by Levi Foster's [circuit-graft video](https://x.com/cybermynd/status/2119238247633096978). He added 24 new neurons to SmolLM2-135M that read the numbers in an arithmetic problem and push the correct digit, and held-out multiplication went from 21.3% to 83.1% with no training. It is the same family of method: read an internal signal, then write a direction that raises a token. One reply to his post made the point this post makes about bypasses: the model's own multiplication does not change.
+<blockquote class="wsp-quote">skip the degenerate Thinking Process loop and answer directly<small>Claude Fable 5.1, final notes, session 1</small></blockquote>
 
 ## What I take from this
 
-The method works, in the sense that matters for the report: a frontier model read activations, found a handle, and wrote a change that fixed the behaviour on held-out data, with 4,083 entries and no gradient. The random-location control says it was not luck. That is the real part.
+The method works in the sense that matters for the report. A frontier model read activations, found a handle four neurons wide, and changed held-out behaviour with no gradient. The random-location control says it was not luck.
 
-But look at what it found and what it did not. Twice the editor produced a mechanistic explanation of the loop, with specific heads, specific neurons, measured effects in nats, and a precise edit that followed from the explanation. Twice the edit did nothing. The explanation that worked was not about the loop at all; it was about the gate into the mode that loops. The editor did not repair the loop. It routed around it, and said so in its own words: "skip the degenerate Thinking Process loop and answer directly".
+But twice the editor produced a specific, measured, mechanistic account of the loop, with named heads, named neurons and effect sizes in nats, and a precise edit that followed from it. Twice the edit did nothing. The explanation that worked was not about the loop. It was about the door into the room where the loop happens, and the editor closed the door.
 
-So on this evidence the claim "a frontier model can understand why a small model misbehaves and fix the cause" is not shown. The claim "a frontier model can find a small lever that changes the behaviour" is. Those are different claims, and the second one is already what activation steering and a few other methods do. By the measurement above, Astra's math edit did remove the loop. So the question is what made the difference here: the editor, or the task.
+"A frontier model can find a small lever that changes the behaviour" is shown. "A frontier model can understand why a small model misbehaves and fix the cause" is not, at least not here. The MIT edit, by the same count, is a repair. So the open question is what made the difference: the editor, or the task.
 
-## What is next
+## Next
 
-Two runs with GPT-6 Astra, the report's own editor, on the same SQL task. And an ablation map: switch off every attention head and every block of MLP neurons one at a time and measure the loop rate, to find out whether a single-site repair exists at all. If no editor finds a repair and the map says none exists, that settles it one way; if one editor does, the other way. And one robustness check, borrowed from MaxxBench, which changes small requirements in coding tasks to see whether agents follow the new task: run the edits on Dr.Spider, which pairs Spider questions with minimally changed versions. A bypass should do no better there than the template flag. A repair might.
+Two runs with GPT-6 Astra, the report's own editor, on this SQL task. An ablation map, switching off every head and every block of neurons one at a time, to learn whether a single-site repair exists at all. And a robustness check borrowed from MaxxBench: run the edits on Dr.Spider, which pairs each Spider question with a minimally changed twin. A bypass should do no better there than the flag. A repair might.
 
-Everything is released: both edit files, 19 KB and 10 KB, every turn of both sessions, the editor's notes, the harness, and the evaluation scripts. Applying the edit and rerunning the BIRD numbers takes about 20 minutes on a laptop. Code, logs and the paper draft: [github.com/Exorust/wsp-sql](https://github.com/Exorust/wsp-sql). Interactive version of this post: [wsp-sql.vercel.app](https://wsp-sql.vercel.app). The arXiv version follows once the repeat runs are in.
+<div class="wsp-links">
+<a href="https://wsp-sql.vercel.app">Interactive version</a>
+<a href="https://wsp-sql.vercel.app/neurons">3D neuron view</a>
+<a href="https://github.com/Exorust/wsp-sql">Code, logs, both edits</a>
+</div>
+
+Everything is released: both edit files (19 KB and 10 KB), every turn of both sessions, the editor's notes, the harness and the evaluation scripts. Applying an edit and rerunning the BIRD numbers takes about 20 minutes on a laptop. The arXiv version follows once the Astra runs are in. The neuron view is inspired by Levi Foster's [circuit grafts](https://x.com/cybermynd/status/2119238247633096978), which add new neurons to a 135M model instead of changing old ones.
