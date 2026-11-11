@@ -81,6 +81,24 @@ In a repair, the model still reasons and the reasoning now ends. In a bypass, th
 
 The report's math edit was not written for SQL and helps little here, but where it works the model still reasons. It is a repair. On math, other groups measure it at 50.2% with thinking on against 45.8% for the base model with thinking off, and beating the flag is something only a repair can do. Every edit found on SQL is a bypass, and none beats the flag.
 
+## What the two edits look like inside the model
+
+Each MLP neuron writes a fixed vector into the model's running state when it fires: its column in the layer's down_proj weight matrix. So one way to look at an edit is to place every neuron by the direction it writes, and see which neurons move.
+
+<video src="/posts/weight-space-programming-sql/neurons.mp4" autoplay muted loop playsinline preload="metadata" poster="/posts/weight-space-programming-sql/neurons_poster.jpg" width="1080" height="1080" aria-label="Turning cloud of the model's neurons by layer. Four edited neurons in layers 17 to 20 move far out toward the end-of-thinking token. The 128 neurons of the MIT edit stay in the cloud."></video>
+
+Each grey dot is one neuron of Qwen3.5-0.8B, 300 sampled per layer across all 24 layers. Height is the layer. The horizontal axis is the cosine between a neuron's output direction and the vector that session 1 added. Depth is the largest remaining variation. Both horizontal axes use the same cosine scale, so nothing is stretched.
+
+Three things are visible.
+
+The four changes of session 1 are one vector. Between any two of them the cosine is 1.0. Fable wrote the same push, toward `</think>`, into four different neurons.
+
+Those four neurons leave the cloud. Before the edit, their cosine with that vector is between -0.04 and 0.04. After it, the cosine is 0.44 to 0.69. Of the unchanged neurons, 98% stay between -0.07 and 0.07.
+
+The MIT math edit, in blue, changes 128 neurons in layers 15 and 19, and on this axis they do not move: the median cosine stays below 0.006. They do change, by a median cosine of 0.86 in layer 15 and 0.91 in layer 19 between before and after, but in other directions. That agrees with the table above: the bypass is one push toward one token, and the repair is not. It is one picture of two edits, not a test.
+
+You can turn the model by hand in the [interactive version](https://wsp-sql.vercel.app/neurons.html). The view is inspired by Levi Foster's [circuit-graft video](https://x.com/cybermynd/status/2119238247633096978). He added 24 new neurons to SmolLM2-135M that read the numbers in an arithmetic problem and push the correct digit, and held-out multiplication went from 21.3% to 83.1% with no training. It is the same family of method: read an internal signal, then write a direction that raises a token. One reply to his post made the point this post makes about bypasses: the model's own multiplication does not change.
+
 ## What I take from this
 
 The method works, in the sense that matters for the report: a frontier model read activations, found a handle, and wrote a change that fixed the behaviour on held-out data, with 4,083 entries and no gradient. The random-location control says it was not luck. That is the real part.
@@ -91,6 +109,6 @@ So on this evidence the claim "a frontier model can understand why a small model
 
 ## What is next
 
-Two runs with GPT-6 Astra, the report's own editor, on the same SQL task. And an ablation map: switch off every attention head and every block of MLP neurons one at a time and measure the loop rate, to find out whether a single-site repair exists at all. If no editor finds a repair and the map says none exists, that settles it one way; if one editor does, the other way.
+Two runs with GPT-6 Astra, the report's own editor, on the same SQL task. And an ablation map: switch off every attention head and every block of MLP neurons one at a time and measure the loop rate, to find out whether a single-site repair exists at all. If no editor finds a repair and the map says none exists, that settles it one way; if one editor does, the other way. And one robustness check, borrowed from MaxxBench, which changes small requirements in coding tasks to see whether agents follow the new task: run the edits on Dr.Spider, which pairs Spider questions with minimally changed versions. A bypass should do no better there than the template flag. A repair might.
 
 Everything is released: both edit files, 19 KB and 10 KB, every turn of both sessions, the editor's notes, the harness, and the evaluation scripts. Applying the edit and rerunning the BIRD numbers takes about 20 minutes on a laptop. Code, logs and the paper draft: [github.com/Exorust/wsp-sql](https://github.com/Exorust/wsp-sql). Interactive version of this post: [wsp-sql.vercel.app](https://wsp-sql.vercel.app). The arXiv version follows once the repeat runs are in.
