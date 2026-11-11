@@ -1,8 +1,8 @@
 ---
-title: Weight-space programming, but for SQL
-subtitle: I asked a frontier model to fix a small model's weights by hand. It found a bypass.
+title: "When AI debugs AI: repair or bypass?"
+subtitle: I asked a frontier model to fix a small model's weights by hand, twice. Both times the bug went away, and both times it was a bypass.
 date: 2026-11-07
-description: An independent test of MIT's weight-space programming claim on a text-to-SQL loop in Qwen3.5-0.8B, with Claude Fable 5.1 as the editor. The edit works, transfers, and is worth one template flag.
+description: An independent test of MIT's weight-space programming claim on a text-to-SQL loop in Qwen3.5-0.8B, with Claude Fable 5.1 as the editor. Two sessions, two working edits, both bypasses. One measurement separates a bypass from a repair.
 ---
 Last week MIT CSAIL published a report called "Sparks of Weight-Space Programming". The claim is simple and strange: give a frontier model the raw weights of a small model, a Python kernel, and a budget of forward passes, and it can find why the small model misbehaves and fix it by editing the weights directly. No training. No gradients. The headline result: GPT-6 Astra edited 0.016% of Qwen3.5-0.8B's weights and its MATH-500 score went from 8% to 48%, because the small model had been stuck in a loop and the edit removed the loop.
 
@@ -63,16 +63,34 @@ One more row: ordinary gradient descent, allowed to touch only the same 4,083 en
 
 And the edit is worth exactly one setting. The chat template has a flag that disables thinking by inserting an empty `<think></think>` block. The base model with that flag scores 7.3%. The edit makes the model emit the closing tag by itself, and scores 6.0%. The editor rebuilt a template flag inside the weights.
 
+## Two ways a bug can go away
+
+After the first session I ran a second one, same editor, fresh conversation, no shared notes. It reached the same strategy through different neurons: one neuron in layer 18 that fires only at the first thinking position, plus a "keep the query simple" steering direction written into a layer 16 neuron. On BIRD: 5.3% correct, 24.0% looping, against 6.0% and 26.0% for the first session. Random-location edits of its size do nothing, and gradient descent on its 2,048 entries finds the same thing.
+
+Then I read the other replications of the MIT result. Several show that the base model with thinking switched off already recovers most of the math gain, so the edit removes a loop and adds little ability. That point is settled. What none of them checks is how the loop goes away, and there are two ways.
+
+In a repair, the model still reasons and the reasoning now ends. In a bypass, the model writes `</think>` at once and skips reasoning, which is what the template flag already does. One count separates them: how much text comes before `</think>`.
+
+| same 150 questions | closes thinking | with zero reasoning | median characters of reasoning |
+|---|---|---|---|
+| base model | 2 | 0 | 3,092 |
+| the report's math edit | 22 | 0 | 5,768 |
+| Fable session 1 edit | 150 | 150 | 0 |
+| Fable session 2 edit | 150 | 150 | 0 |
+| gradient descent, either footprint | 150 | 150 | 0 |
+
+The report's math edit was not written for SQL and helps little here, but where it works the model still reasons. It is a repair. On math, other groups measure it at 50.2% with thinking on against 45.8% for the base model with thinking off, and beating the flag is something only a repair can do. Every edit found on SQL is a bypass, and none beats the flag.
+
 ## What I take from this
 
 The method works, in the sense that matters for the report: a frontier model read activations, found a handle, and wrote a change that fixed the behaviour on held-out data, with 4,083 entries and no gradient. The random-location control says it was not luck. That is the real part.
 
 But look at what it found and what it did not. Twice the editor produced a mechanistic explanation of the loop, with specific heads, specific neurons, measured effects in nats, and a precise edit that followed from the explanation. Twice the edit did nothing. The explanation that worked was not about the loop at all; it was about the gate into the mode that loops. The editor did not repair the loop. It routed around it, and said so in its own words: "skip the degenerate Thinking Process loop and answer directly".
 
-So on this evidence the claim "a frontier model can understand why a small model misbehaves and fix the cause" is not shown. The claim "a frontier model can find a small lever that changes the behaviour" is. Those are different claims, and the second one is already what activation steering and a few other methods do. The interesting question for the report's math result is the same one: did Astra remove the loop, or did it find a lever that avoids it? The controls that answer that are cheap and I will run them next.
+So on this evidence the claim "a frontier model can understand why a small model misbehaves and fix the cause" is not shown. The claim "a frontier model can find a small lever that changes the behaviour" is. Those are different claims, and the second one is already what activation steering and a few other methods do. By the measurement above, Astra's math edit did remove the loop. So the question is what made the difference here: the editor, or the task.
 
 ## What is next
 
-A second Fable run, to see if it finds the same four neurons or a different lever. Two runs with GPT-6 Astra, the report's own editor. And an ablation map: switch off every attention head and every block of MLP neurons one at a time and measure the loop rate, to find out whether a single-site repair exists at all. If no editor finds a repair and the map says none exists, that settles it one way; if one editor does, the other way.
+Two runs with GPT-6 Astra, the report's own editor, on the same SQL task. And an ablation map: switch off every attention head and every block of MLP neurons one at a time and measure the loop rate, to find out whether a single-site repair exists at all. If no editor finds a repair and the map says none exists, that settles it one way; if one editor does, the other way.
 
-Everything is released: the four edit files, which total 16 KB, all 328 turns, the editor's notes, the harness, and the evaluation scripts. Applying the edit and rerunning the BIRD numbers takes about 20 minutes on a laptop. Code, logs and the paper draft: [github.com/Exorust/wsp-sql](https://github.com/Exorust/wsp-sql). Interactive version of this post: [wsp-sql.vercel.app](https://wsp-sql.vercel.app). The arXiv version follows once the repeat runs are in.
+Everything is released: both edit files, 19 KB and 10 KB, every turn of both sessions, the editor's notes, the harness, and the evaluation scripts. Applying the edit and rerunning the BIRD numbers takes about 20 minutes on a laptop. Code, logs and the paper draft: [github.com/Exorust/wsp-sql](https://github.com/Exorust/wsp-sql). Interactive version of this post: [wsp-sql.vercel.app](https://wsp-sql.vercel.app). The arXiv version follows once the repeat runs are in.
